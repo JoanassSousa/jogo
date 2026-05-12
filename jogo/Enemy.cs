@@ -7,6 +7,7 @@ namespace jogo
     {
         public Vector2 WorldPosition { get; set; }
         public float Speed { get; set; } = 2f;
+        public Vector2 direction;
         public Texture2D[] Texture { get; set; }
         private int currentFrame = 0;
 
@@ -59,7 +60,7 @@ namespace jogo
                 return;
             }
 
-            Vector2 direction = playerWorldPosition - WorldPosition;
+            direction = playerWorldPosition - WorldPosition;
             if (direction != Vector2.Zero)
             {
                 // Força o movimento apenas para o eixo de maior distância (Caminho mais Linear - Grade)

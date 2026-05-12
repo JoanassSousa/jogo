@@ -11,7 +11,10 @@ namespace jogo
         // boss com animação de 4 frames
         private Texture2D[] bossFrames;
         private Texture2D[] sheepFrames;
-
+        private Texture2D[] rangedFramesUp;
+        private Texture2D[] rangedFramesDown;
+        private Texture2D[] rangedFramesLeft;
+        private Texture2D[] rangedFramesRight;
 
 
         Vector2 _playerWorldPosition = Vector2.Zero;
@@ -183,6 +186,23 @@ namespace jogo
 
             sheepFrames[0] = Content.Load<Texture2D>("OvelhaAzul_1");
             sheepFrames[1] = Content.Load<Texture2D>("OvelhaAzul_2");
+
+            //ranged enemy
+            rangedFramesDown = new Texture2D[2];
+            rangedFramesDown[0] = Content.Load<Texture2D>("rangedEnemyDown_0");
+            rangedFramesDown[1] = Content.Load<Texture2D>("rangedEnemyDown_1");
+
+            rangedFramesLeft = new Texture2D[2];
+            rangedFramesLeft[0] = Content.Load<Texture2D>("rangedEnemyLeft_0");
+            rangedFramesLeft[1] = Content.Load<Texture2D>("rangedEnemyLeft_1");
+
+            rangedFramesRight = new Texture2D[2];
+            rangedFramesRight[0] = Content.Load<Texture2D>("rangedEnemyRight_0");
+            rangedFramesRight[1] = Content.Load<Texture2D>("rangedEnemyRight_1");
+
+            rangedFramesUp = new Texture2D[2];
+            rangedFramesUp[0] = Content.Load<Texture2D>("rangedEnemyUp_0");
+            rangedFramesUp[1] = Content.Load<Texture2D>("rangedEnemyUp_1");
 
             foreach (var enemy in _enemies)
             {
@@ -442,6 +462,29 @@ namespace jogo
 
                     if (enemy is RangedEnemy rangedEnemy)
                     {
+                        //calcular direçao do ranged enemy para adaptar as textures
+                        if (Math.Abs(rangedEnemy.direction.X) > Math.Abs(rangedEnemy.direction.Y))
+                        {
+                            if(rangedEnemy.direction.X > 0)
+                            {
+                                enemy.LoadFrames(rangedFramesRight);
+                            }
+                            else if (rangedEnemy.direction.X < 0)
+                            {
+                                enemy.LoadFrames(rangedFramesLeft);
+                            }
+                        }
+                        if (Math.Abs(rangedEnemy.direction.Y) > Math.Abs(rangedEnemy.direction.X))
+                        {
+                            if (rangedEnemy.direction.Y > 0)
+                            {
+                                enemy.LoadFrames(rangedFramesDown);
+                            }
+                            else if (rangedEnemy.direction.Y < 0)
+                            {
+                                enemy.LoadFrames(rangedFramesUp);
+                            }
+                        }
                         var bullet = rangedEnemy.UpdateRanged(gameTime, _playerWorldPosition, currentEnemyObstacles);
                         if (bullet != null) _enemyBullets.Add(bullet);
                     }
