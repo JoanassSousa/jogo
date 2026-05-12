@@ -7,7 +7,11 @@ namespace jogo
     {
         public Vector2 WorldPosition { get; set; }
         public float Speed { get; set; } = 2f;
-        public Texture2D Texture { get; set; }
+        public Texture2D[] Texture { get; set; }
+        private int currentFrame = 0;
+
+        private float animationTimer = 0f;
+        private float animationSpeed = 0.2f;
 
         public int Health { get; set; } = 20;
         public int MaxHealth { get; private set; } = 20;
@@ -123,6 +127,26 @@ namespace jogo
             }
         }
 
+        public void LoadFrames(Texture2D[] frames)
+        {
+            Texture = frames;
+        }
+
+        public void UpdateAnimation(GameTime gameTime)
+        {
+            animationTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (animationTimer >= animationSpeed)
+            {
+                currentFrame++;
+
+                if (currentFrame >= Texture.Length)
+                    currentFrame = 0;
+
+                animationTimer = 0f;
+            }
+        }
+
         public void Draw(SpriteBatch spriteBatch, Vector2 playerScreenPosition, Vector2 playerWorldPosition)
         {
             // Calculate screen position relative to player
@@ -130,7 +154,7 @@ namespace jogo
 
             if (Texture != null)
             {
-                spriteBatch.Draw(Texture, screenPosition, Color.White);
+                spriteBatch.Draw(Texture[currentFrame], screenPosition, Color.White);
             }
             else
             {

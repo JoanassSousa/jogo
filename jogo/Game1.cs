@@ -10,6 +10,7 @@ namespace jogo
     {
         // boss com animação de 4 frames
         private Texture2D[] bossFrames;
+        private Texture2D[] sheepFrames;
 
 
 
@@ -48,6 +49,7 @@ namespace jogo
 
         //inimigo
         Enemy _enemy;
+        Texture2D _enemyTexture;
         System.Collections.Generic.List<Enemy> _enemies = new System.Collections.Generic.List<Enemy>();
         System.Collections.Generic.List<RangedEnemyBullet> _enemyBullets = new System.Collections.Generic.List<RangedEnemyBullet>();
         Texture2D _bulletTexture; // Textura estática da bala
@@ -148,9 +150,9 @@ namespace jogo
             _portalBounds = new Rectangle(_mapWidth / 2 - 25, 0, 50, 50);
 
             // inicializar parede perto do player (exemplo posição e tamanho)
-            _wall = new Wall(new Vector2(100, 100), 50, 50);
+            _wall = new Wall(new Vector2(100, 180), 590, 145);
 
-            _playerWorldPosition = new Vector2(400, 300); // Começar no meio visível
+            _playerWorldPosition = new Vector2(400, 400); // Começar no meio visível
             _brownWall = new BrownWall(new Vector2(450, 300), 100, 20); // Perto do player
 
             // inicializar ataque
@@ -175,6 +177,17 @@ namespace jogo
             bossFrames[1] = Content.Load<Texture2D>("boss2");
             bossFrames[2] = Content.Load<Texture2D>("boss3");
             bossFrames[3] = Content.Load<Texture2D>("boss4");
+
+            //melee enemy
+            sheepFrames = new Texture2D[2];
+
+            sheepFrames[0] = Content.Load<Texture2D>("OvelhaAzul_1");
+            sheepFrames[1] = Content.Load<Texture2D>("OvelhaAzul_2");
+
+            foreach (var enemy in _enemies)
+            {
+                enemy.LoadFrames(sheepFrames);
+            }
 
             //supermarket do lado de fora e do lado de dentro
             _outsideMap = Content.Load<Texture2D>("supermercado_fora");
@@ -223,6 +236,7 @@ namespace jogo
                 {
                     boss.UpdateAnimation(gameTime);
                 }
+                else enemy.UpdateAnimation(gameTime);
             }
 
 
@@ -257,7 +271,7 @@ namespace jogo
                 if (_keyboard.IsKeyDown(Keys.Enter) && _prevKeyboard.IsKeyUp(Keys.Enter))
                 {
                     _currentState = GameState.Menu;
-                    _playerWorldPosition = new Vector2(400, 300);
+                    _playerWorldPosition = new Vector2(400, 400);
                     _playerLevel = 1;
                     _currentXp = 0;
                     _playerAttack.AttackLevel = 1;
@@ -486,15 +500,22 @@ namespace jogo
 
                     if (_currentArea == 2)
                     {
-                        _playerWorldPosition = new Vector2(400, 300); // Reset position meio screen
-                        _enemies.Add(new RangedEnemy(new Vector2(200, 200)));
-                        _enemies.Add(new RangedEnemy(new Vector2(600, 200))); // Mudou de meelee para ranged
+                        _playerWorldPosition = new Vector2(400, 400); // Reset position meio screen
+
+                        RangedEnemy enemy1 = new RangedEnemy(new Vector2(200, 200));
+                        enemy1.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy2 = new RangedEnemy(new Vector2(600, 200));
+                        enemy2.LoadFrames(sheepFrames);
+
+                        _enemies.Add(enemy1);
+                        _enemies.Add(enemy2); // Mudou de meelee para ranged
                     }
                     if (_currentArea == 3)
                     {
                         _playerWorldPosition = new Vector2(_mapWidth / 2 - 16, _mapHeight - 50); // Cima e no meio da zona inferior
                         BossEnemy boss = new BossEnemy(
-    new Vector2(_mapWidth / 2 - 30, _mapHeight / 2 - 30)
+    new Vector2(_mapWidth / 2 - 30, _mapHeight / 2)
 );
 
                         boss.LoadBossFrames(bossFrames);
@@ -643,10 +664,10 @@ namespace jogo
                 _spriteBatch.Draw(_menuButton, _menuButtonRect, Color.White);
 
                 // wall desenhada no mundo onde player fica preso
-                Vector2 wallDrawPos = new Vector2(_wall.Position.X, _wall.Position.Y);
+                /*Vector2 wallDrawPos = new Vector2(_wall.Position.X, _wall.Position.Y);
                 Texture2D wallTexture = new Texture2D(GraphicsDevice, 1, 1);
                 wallTexture.SetData(new[] { Color.Brown });
-                _spriteBatch.Draw(wallTexture, new Rectangle((int)wallDrawPos.X, (int)wallDrawPos.Y, _wall.Width, _wall.Height), Color.White);
+                _spriteBatch.Draw(wallTexture, new Rectangle((int)wallDrawPos.X, (int)wallDrawPos.Y, _wall.Width, _wall.Height), Color.White);*/
 
                 Vector2 cameraOffset = Vector2.Zero; // sem offset para o caso de ainda o calcular
                 _brownWall.Draw(_spriteBatch, cameraOffset);
