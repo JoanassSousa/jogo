@@ -92,7 +92,7 @@ namespace jogo
             float distanceToTarget = Vector2.Distance(_playerCenterAtAttack, targetCenter);
 
             // Adicional raio usando o tamanho do target (aproximado)
-            if (distanceToTarget > _arcRadius + (target.Width / 2f)) 
+            if (distanceToTarget > _arcRadius + (target.Width / 2f))
                 return false;
 
             // 2. O alvo está dentro do ângulo do cone?

@@ -8,6 +8,10 @@ namespace jogo
 {
     public class Game1 : Game
     {
+        // boss com animação de 4 frames
+        private Texture2D[] bossFrames;
+
+
 
         Vector2 _playerWorldPosition = Vector2.Zero;
         //porta do mapa
@@ -37,8 +41,22 @@ namespace jogo
         //player 
         Vector2 _playerScreenPosition;
 
+        // O mapa ficará agora estático no fundo, tamanho do mapa será os limites:
+        int _mapWidth = 800; // Será atualizado para o tamanho da textura
+        int _mapHeight = 600;
+
+
         //inimigo
         Enemy _enemy;
+        System.Collections.Generic.List<Enemy> _enemies = new System.Collections.Generic.List<Enemy>();
+        System.Collections.Generic.List<RangedEnemyBullet> _enemyBullets = new System.Collections.Generic.List<RangedEnemyBullet>();
+        Texture2D _bulletTexture; // Textura estática da bala
+
+        // Portal e Zonas
+        int _currentArea = 1;
+        bool _portalActive = false;
+        Rectangle _portalBounds;
+
 
         //ataque do player
         PlayerAttack _playerAttack;
@@ -60,10 +78,14 @@ namespace jogo
         // XP e Level do Player
         int _playerLevel = 1;
         int _currentXp = 0;
-        int _xpToNextLevel = 100; // Será modificado para requerer 50 x 2 = 100 de exp (sendo que cada gema de lvl 1 passará a dar apenas 2 XP de forma que 50 pedaços deem 100). Usaremos 100 de referencial
+        int _xpToNextLevel = 2; // Será modificado para requerer 50 x 2 = 100 de exp (sendo que cada gema de lvl 1 passará a dar apenas 2 XP de forma que 50 pedaços deem 100). Usaremos 100 de referencial
 
         // Lista de pedras de XP no cenário
         System.Collections.Generic.List<ExperienceGem> _experienceGems = new System.Collections.Generic.List<ExperienceGem>();
+
+        // obstacles / walls
+        Wall _wall;
+        BrownWall _brownWall;
 
         //imagem do menu
         Texture2D _menuImage;
@@ -73,7 +95,8 @@ namespace jogo
         enum GameState
         {
             Menu,
-            Playing
+            Playing,
+            Victory
         }
 
         GameState _currentState = GameState.Menu;
@@ -120,7 +143,15 @@ namespace jogo
 );
 
             // inicializar o inimigo
-            _enemy = new Enemy(new Vector2(200, 200));
+            _enemies.Add(new Enemy(new Vector2(200, 200)));
+
+            _portalBounds = new Rectangle(_mapWidth / 2 - 25, 0, 50, 50);
+
+            // inicializar parede perto do player (exemplo posição e tamanho)
+            _wall = new Wall(new Vector2(100, 100), 50, 50);
+
+            _playerWorldPosition = new Vector2(400, 300); // Começar no meio visível
+            _brownWall = new BrownWall(new Vector2(450, 300), 100, 20); // Perto do player
 
             // inicializar ataque
             _playerAttack = new PlayerAttack();
@@ -136,9 +167,20 @@ namespace jogo
         // carregar coisas (fontes, imagens)
         protected override void LoadContent()
         {
+
+            // boss com animação de 4 frames
+            bossFrames = new Texture2D[4];
+
+            bossFrames[0] = Content.Load<Texture2D>("boss1");
+            bossFrames[1] = Content.Load<Texture2D>("boss2");
+            bossFrames[2] = Content.Load<Texture2D>("boss3");
+            bossFrames[3] = Content.Load<Texture2D>("boss4");
+
             //supermarket do lado de fora e do lado de dentro
             _outsideMap = Content.Load<Texture2D>("supermercado_fora");
             _insideMap = Content.Load<Texture2D>("supermercado_dentro");
+            _mapWidth = _outsideMap.Width;
+            _mapHeight = _outsideMap.Height;
 
             // imagem do mini menu
             _menuButton = Content.Load<Texture2D>("menu_button");
@@ -158,12 +200,31 @@ namespace jogo
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             _font = Content.Load<SpriteFont>("DefaultFont");
+            _brownWall.LoadContent(GraphicsDevice);
+
+            // Criamos a textura da bala uma só vez
+            _bulletTexture = new Texture2D(GraphicsDevice, 10, 10);
+            Color[] bData = new Color[10 * 10];
+            for (int i = 0; i < bData.Length; ++i) bData[i] = Color.Purple;
+            _bulletTexture.SetData(bData);
         }
 
 
         // lógica (teclas, movimento, menu)
         protected override void Update(GameTime gameTime)
         {
+
+
+
+            // Atualizar animação do boss
+            foreach (var enemy in _enemies)
+            {
+                if (enemy is BossEnemy boss)
+                {
+                    boss.UpdateAnimation(gameTime);
+                }
+            }
+
 
             // coisas do menu
             _keyboard = Keyboard.GetState();
@@ -191,6 +252,26 @@ namespace jogo
                     HandleMenuSelection();
             }
 
+            if (_currentState == GameState.Victory)
+            {
+                if (_keyboard.IsKeyDown(Keys.Enter) && _prevKeyboard.IsKeyUp(Keys.Enter))
+                {
+                    _currentState = GameState.Menu;
+                    _playerWorldPosition = new Vector2(400, 300);
+                    _playerLevel = 1;
+                    _currentXp = 0;
+                    _playerAttack.AttackLevel = 1;
+                    _currentArea = 1;
+                    _portalActive = false;
+                    _enemies.Clear();
+                    _enemies.Add(new Enemy(new Vector2(200, 200)));
+                    _enemyBullets.Clear();
+                    _experienceGems.Clear();
+                    _playerHealth = 100;
+                    _playerMaxHealth = 100;
+                }
+            }
+
             //coisas dos playereszinhos e com o mundo a mover-se
             if (_currentState == GameState.Playing)
             {
@@ -199,42 +280,61 @@ namespace jogo
 
                 if (keyboard.IsKeyDown(Keys.W))
                 {
-                    _playerWorldPosition.Y -= 3;
+                    Vector2 nextPos = _playerWorldPosition;
+                    nextPos.Y -= 3;
+                    Rectangle nextBounds = new Rectangle((int)nextPos.X, (int)nextPos.Y, 32, 32);
+                    if (!_wall.Bounds.Intersects(nextBounds) && !_brownWall.Bounds.Intersects(nextBounds))
+                        _playerWorldPosition.Y -= 3;
                     _currentPlayerTexture = _playerUp;
                     _playerFaceDirection = new Vector2(0, -1);
                 }
 
                 if (keyboard.IsKeyDown(Keys.S))
                 {
-                    _playerWorldPosition.Y += 3;
+                    Vector2 nextPos = _playerWorldPosition;
+                    nextPos.Y += 3;
+                    Rectangle nextBounds = new Rectangle((int)nextPos.X, (int)nextPos.Y, 32, 32);
+                    if (!_wall.Bounds.Intersects(nextBounds) && !_brownWall.Bounds.Intersects(nextBounds))
+                        _playerWorldPosition.Y += 3;
                     _currentPlayerTexture = _playerDown;
                     _playerFaceDirection = new Vector2(0, 1);
                 }
 
                 if (keyboard.IsKeyDown(Keys.A))
                 {
-                    _playerWorldPosition.X -= 3;
+                    Vector2 nextPos = _playerWorldPosition;
+                    nextPos.X -= 3;
+                    Rectangle nextBounds = new Rectangle((int)nextPos.X, (int)nextPos.Y, 32, 32);
+                    if (!_wall.Bounds.Intersects(nextBounds) && !_brownWall.Bounds.Intersects(nextBounds))
+                        _playerWorldPosition.X -= 3;
                     _currentPlayerTexture = _playerLeft;
                     _playerFaceDirection = new Vector2(-1, 0);
                 }
 
                 if (keyboard.IsKeyDown(Keys.D))
                 {
-                    _playerWorldPosition.X += 3;
+                    Vector2 nextPos = _playerWorldPosition;
+                    nextPos.X += 3;
+                    Rectangle nextBounds = new Rectangle((int)nextPos.X, (int)nextPos.Y, 32, 32);
+                    if (!_wall.Bounds.Intersects(nextBounds) && !_brownWall.Bounds.Intersects(nextBounds))
+                        _playerWorldPosition.X += 3;
                     _currentPlayerTexture = _playerRight;
                     _playerFaceDirection = new Vector2(1, 0);
                 }
 
+                _playerWorldPosition.X = Math.Clamp(_playerWorldPosition.X, 0, _mapWidth - 32);
+                _playerWorldPosition.Y = Math.Clamp(_playerWorldPosition.Y, 0, _mapHeight - 32);
+
                 // Disparar o ataque ao pressionar espaço ou clique esquerdo do mouse
-                if ((keyboard.IsKeyDown(Keys.Space) && _prevKeyboard.IsKeyUp(Keys.Space)) || 
+                if ((keyboard.IsKeyDown(Keys.Space) && _prevKeyboard.IsKeyUp(Keys.Space)) ||
                     (mouse.LeftButton == ButtonState.Pressed && _prevMouse.LeftButton == ButtonState.Released && !_menuButtonRect.Contains(mouse.Position)))
                 {
                     Vector2 attackDirection = _playerFaceDirection;
 
                     if (mouse.LeftButton == ButtonState.Pressed && _prevMouse.LeftButton == ButtonState.Released)
                     {
-                        // Calcula direção em relação ao ponteiro do mouse
-                        Vector2 mouseWorldPos = new Vector2(mouse.X, mouse.Y) + _worldPosition;
+                        // Quando não há mais tracking the câmera, mouse.X e Y já apontam diretamente para o world position correspondente
+                        Vector2 mouseWorldPos = new Vector2(mouse.X, mouse.Y);
                         Vector2 direction = mouseWorldPos - _playerWorldPosition;
                         if (direction.LengthSquared() > 0)
                         {
@@ -281,56 +381,158 @@ namespace jogo
                     obstacles.Add(_storeDoor); // o inimigo contornará a porta colidível por fora
                 }
 
-                _enemy.Update(_playerWorldPosition, obstacles);
-
-                // Colisão do inimigo com o jogador
-                _timeSinceLastEnemyCollision += (float)gameTime.ElapsedGameTime.TotalSeconds;
-
                 Rectangle playerBounds = new Rectangle(
-                    (int)_playerWorldPosition.X, 
-                    (int)_playerWorldPosition.Y, 
+                    (int)_playerWorldPosition.X,
+                    (int)_playerWorldPosition.Y,
                     32, 32 // assumindo tamanho 32x32 para o player
                 );
 
-                if (_enemy.Health > 0 && _enemy.Bounds.Intersects(playerBounds))
-                {
-                    if (_timeSinceLastEnemyCollision >= 1f) // 1 seg de invulnerabilidade após bater
-                    {
-                        _playerHealth -= 5;
-                        _timeSinceLastDamage = 0f;
-                        _timeSinceLastEnemyCollision = 0f;
+                _timeSinceLastEnemyCollision += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                        if (_playerHealth <= 0)
+                // Processar balas
+                for (int i = _enemyBullets.Count - 1; i >= 0; i--)
+                {
+                    _enemyBullets[i].Update();
+
+                    if (_enemyBullets[i].Bounds.Intersects(playerBounds) && _enemyBullets[i].IsActive)
+                    {
+                        if (_timeSinceLastEnemyCollision >= 1f) // Usa mesmo i-frame
                         {
-                            // Ação ao morrer (ex: voltar ao menu)
-                            _playerHealth = _playerMaxHealth;
-                            _currentState = GameState.Menu;
+                            _playerHealth -= _enemyBullets[i].Damage;
+                            _timeSinceLastDamage = 0f;
+                            _timeSinceLastEnemyCollision = 0f;
+                        }
+                        _enemyBullets[i].IsActive = false;
+                    }
+
+                    if (!_enemyBullets[i].IsActive || _enemyBullets[i].Position.X < 0 || _enemyBullets[i].Position.X > _mapWidth || _enemyBullets[i].Position.Y < 0 || _enemyBullets[i].Position.Y > _mapHeight)
+                    {
+                        _enemyBullets.RemoveAt(i);
+                    }
+                }
+
+                // Processar Inimigos
+                for (int i = _enemies.Count - 1; i >= 0; i--)
+                {
+                    Enemy enemy = _enemies[i];
+
+                    // Criar uma cópia isolada de obstáculos para colocar os outros inimigos lá para o teste de colisão
+                    var currentEnemyObstacles = new System.Collections.Generic.List<Rectangle>(obstacles);
+                    for (int j = 0; j < _enemies.Count; j++)
+                    {
+                        if (i != j && _enemies[j].Health > 0)
+                        {
+                            currentEnemyObstacles.Add(_enemies[j].Bounds);
+                        }
+                    }
+
+                    if (enemy is RangedEnemy rangedEnemy)
+                    {
+                        var bullet = rangedEnemy.UpdateRanged(gameTime, _playerWorldPosition, currentEnemyObstacles);
+                        if (bullet != null) _enemyBullets.Add(bullet);
+                    }
+                    else
+                    {
+                        enemy.Update(_playerWorldPosition, currentEnemyObstacles);
+                    }
+
+                    if (enemy.Health > 0 && enemy.Bounds.Intersects(playerBounds))
+                    {
+                        if (_timeSinceLastEnemyCollision >= 1f)
+                        {
+                            _playerHealth -= 5;
+                            _timeSinceLastDamage = 0f;
+                            _timeSinceLastEnemyCollision = 0f;
+
+                            if (_playerHealth <= 0)
+                            {
+                                _playerHealth = _playerMaxHealth;
+                                _currentState = GameState.Menu;
+                            }
+                        }
+                    }
+
+                    if (enemy.Health > 0 && _playerAttack.IsAttacking && !_enemyHitByCurrentAttack && _playerAttack.CheckCollision(enemy.Bounds))
+                    {
+                        enemy.TakeDamage(_playerAttack.Damage);
+                        _enemyHitByCurrentAttack = true;
+
+                        if (enemy.Health <= 0)
+                        {
+                            _experienceGems.Add(new ExperienceGem(
+                                new Vector2(enemy.WorldPosition.X + 5, enemy.WorldPosition.Y + 5), 1, 2));
+                        }
+                    }
+
+                    if (enemy.Health <= 0)
+                    {
+                        _enemies.RemoveAt(i);
+
+                        // Victory Check (se estiver na area 3 e ja nao existirem inimigos (o boss for o unico))
+                        if (_currentArea == 3 && _enemies.Count == 0)
+                        {
+                            _currentState = GameState.Victory;
                         }
                     }
                 }
 
-                // Lógica de dano do ataque no inimigo 
-                if (_enemy.Health > 0 && _playerAttack.IsAttacking && !_enemyHitByCurrentAttack && _playerAttack.CheckCollision(_enemy.Bounds))
+                // Portal logica
+                if (_portalActive && _portalBounds.Intersects(playerBounds))
                 {
-                    _enemy.TakeDamage(_playerAttack.Damage); // nivel 1 já está configurado na classe p/ 10 de dano por padrão ou vc pode alterar lá. Atualmente é 10, vou colocar pra forçar 5 lá.
-                    _enemyHitByCurrentAttack = true;
+                    _currentArea++;
+                    _portalActive = false;
+                    _enemies.Clear();
+                    _enemyBullets.Clear();
 
-                    if (_enemy.Health <= 0)
+                    if (_currentArea == 2)
                     {
-                        // Inimigo morreu, dropa a gema de XP (Nível 1 de visual)
-                        // Para que sejam necessários 50 pedaços até o nível 2 (quando se precisa de 100XP), dada uma gema, ela dará 2 de XP.
-                        _experienceGems.Add(new ExperienceGem(
-                            new Vector2(_enemy.WorldPosition.X + 5, _enemy.WorldPosition.Y + 5), 1, 2));
+                        _playerWorldPosition = new Vector2(400, 300); // Reset position meio screen
+                        _enemies.Add(new RangedEnemy(new Vector2(200, 200)));
+                        _enemies.Add(new RangedEnemy(new Vector2(600, 200))); // Mudou de meelee para ranged
+                    }
+                    if (_currentArea == 3)
+                    {
+                        _playerWorldPosition = new Vector2(_mapWidth / 2 - 16, _mapHeight - 50); // Cima e no meio da zona inferior
+                        BossEnemy boss = new BossEnemy(
+    new Vector2(_mapWidth / 2 - 30, _mapHeight / 2 - 30)
+);
+
+                        boss.LoadBossFrames(bossFrames);
+
+                        _enemies.Add(boss); // Spawn no meio (60x60, logo tiramos metade para centralizar)
                     }
                 }
+
+
+                // Range de atração do player (exemplo 80x80 centrado no player)
+                Rectangle playerMagnetBounds = new Rectangle(
+                    (int)_playerWorldPosition.X - 24,
+                    (int)_playerWorldPosition.Y - 24,
+                    80, 80
+                );
 
                 // Coletar pedras de XP
                 for (int i = _experienceGems.Count - 1; i >= 0; i--)
                 {
+                    // Lógica de Atracção Magnética (Pick Up Range)
+                    if (playerMagnetBounds.Intersects(_experienceGems[i].Bounds))
+                    {
+                        Vector2 direction = _playerWorldPosition - _experienceGems[i].WorldPosition;
+                        if (direction != Vector2.Zero)
+                        {
+                            direction.Normalize();
+                            _experienceGems[i].WorldPosition += direction * 4f; // Velocidade em que é sugada
+                        }
+                    }
+
                     if (playerBounds.Intersects(_experienceGems[i].Bounds))
                     {
-                        // Coleciona a pedra
-                        _currentXp += _experienceGems[i].XpAmount;
+                        // Coleciona a pedra se nao max
+                        if (_playerLevel < 3)
+                        {
+                            _currentXp += _experienceGems[i].XpAmount;
+                        }
+
                         _experienceGems.RemoveAt(i);
 
                         // Checar level up
@@ -341,8 +543,16 @@ namespace jogo
                             _xpToNextLevel = (int)(_xpToNextLevel * 1.5f); // Aumenta a exp necessária para o próximo
 
                             // Aumentar nível do ataque e vida caso passe do level 2 ou 3 
-                            if (_playerLevel >= 2) _playerAttack.AttackLevel = 2;
-                            if (_playerLevel >= 3) _playerAttack.AttackLevel = 3;
+                            if (_playerLevel >= 2 && _currentArea == 1)
+                            {
+                                _playerAttack.AttackLevel = 2;
+                                _portalActive = true;
+                            }
+                            if (_playerLevel >= 3 && _currentArea == 2)
+                            {
+                                _playerAttack.AttackLevel = 3;
+                                _portalActive = true;
+                            }
 
                             _playerMaxHealth += 10;
                             _playerHealth = _playerMaxHealth;
@@ -408,55 +618,89 @@ namespace jogo
                 // x e y de onde começa a imagem
                 _spriteBatch.Draw(_menuImage, new Vector2(400, 0), Color.White);
             }
-                else if (_currentState == GameState.Playing)
-                {
-                    // mapa
-                    Texture2D currentMap = _insideStore ? _insideMap : _outsideMap;
-                    _spriteBatch.Draw(currentMap, -_worldPosition, Color.White);
+            else if (_currentState == GameState.Playing)
+            {
+                // Como não tem mais camera offset, todos os objetos são desenhados diretamente na sua posição de mundo
+
+                // mapa
+                Texture2D currentMap = _insideStore ? _insideMap : _outsideMap;
+                _spriteBatch.Draw(currentMap, Vector2.Zero, Color.White); // Fixo no (0,0)
 
                 //porta do supermercado
                 Texture2D debugTexture = new Texture2D(GraphicsDevice, 1, 1);
                 debugTexture.SetData(new[] { Color.Black });
 
                 Rectangle movedDoor = new Rectangle(
-                    (int)(_storeDoor.X - _worldPosition.X),
-                    (int)(_storeDoor.Y - _worldPosition.Y),
+                    _storeDoor.X,
+                    _storeDoor.Y,
                     _storeDoor.Width,
                     _storeDoor.Height
                 );
 
                 _spriteBatch.Draw(debugTexture, movedDoor, Color.Red * 0.5f);
 
-
                 // mini menu
                 _spriteBatch.Draw(_menuButton, _menuButtonRect, Color.White);
 
-                    // playerzinho no mundo
-                    _spriteBatch.Draw(_currentPlayerTexture, _playerScreenPosition, Color.White);
+                // wall desenhada no mundo onde player fica preso
+                Vector2 wallDrawPos = new Vector2(_wall.Position.X, _wall.Position.Y);
+                Texture2D wallTexture = new Texture2D(GraphicsDevice, 1, 1);
+                wallTexture.SetData(new[] { Color.Brown });
+                _spriteBatch.Draw(wallTexture, new Rectangle((int)wallDrawPos.X, (int)wallDrawPos.Y, _wall.Width, _wall.Height), Color.White);
 
-                    // desenhar inimigo apenas se estiver vivo
-                    if (_enemy.Health > 0)
+                Vector2 cameraOffset = Vector2.Zero; // sem offset para o caso de ainda o calcular
+                _brownWall.Draw(_spriteBatch, cameraOffset);
+
+                // playerzinho no mundo
+                _spriteBatch.Draw(_currentPlayerTexture, _playerWorldPosition, Color.White);
+
+                if (_portalActive)
+                {
+                    Texture2D portalTex = new Texture2D(GraphicsDevice, 50, 50);
+                    Color[] data = new Color[50 * 50];
+                    for (int i = 0; i < data.Length; ++i) data[i] = Color.Cyan;
+                    portalTex.SetData(data);
+                    _spriteBatch.Draw(portalTex, _portalBounds, Color.White);
+                }
+
+                // desenhar inimigos
+                foreach (var enemy in _enemies)
+                {
+                    if (enemy is BossEnemy boss)
                     {
-                        _enemy.Draw(_spriteBatch, _playerScreenPosition, _playerWorldPosition);
+                        boss.Draw(_spriteBatch, boss.WorldPosition, boss.WorldPosition);
                     }
-
-                    // desenhar gemas de XP
-                    foreach (var gem in _experienceGems)
+                    else
                     {
-                        gem.Draw(_spriteBatch, _playerScreenPosition, _playerWorldPosition);
+                        enemy.Draw(_spriteBatch, enemy.WorldPosition, enemy.WorldPosition);
                     }
+                }
 
-                    // desenhar o ataque visual (hitbox do ataque)
-                    _playerAttack.Draw(_spriteBatch, _playerScreenPosition, _playerWorldPosition);
+                // desenhar balas
+                foreach (var bullet in _enemyBullets)
+                {
+                    bullet.Draw(_spriteBatch, _bulletTexture);
+                }
 
-                    // Desenhar a vida do jogador por cima
-                    _spriteBatch.DrawString(_font, $"Vida: {_playerHealth}/{_playerMaxHealth}", new Vector2(10, 10), Color.Red);
+                // desenhar gemas de XP
+                foreach (var gem in _experienceGems)
+                {
+                    gem.Draw(_spriteBatch, gem.WorldPosition, gem.WorldPosition);
+                }
 
-                    // Desenhar nível e XP
-                    string lvlText = $"Nvl: {_playerLevel}";
-                    Vector2 lvlTextSize = _font.MeasureString(lvlText);
-                    _spriteBatch.DrawString(_font, lvlText, new Vector2(10, 35), Color.Gold);
+                // desenhar o ataque visual (hitbox do ataque)
+                _playerAttack.Draw(_spriteBatch, _playerWorldPosition, _playerWorldPosition);
 
+                // Desenhar a vida do jogador por cima
+                _spriteBatch.DrawString(_font, $"Vida: {_playerHealth}/{_playerMaxHealth}", new Vector2(10, 10), Color.Red);
+
+                // Desenhar nível e XP
+                string lvlText = _playerLevel >= 3 ? "Nvl: MAX" : $"Nvl: {_playerLevel}";
+                Vector2 lvlTextSize = _font.MeasureString(lvlText);
+                _spriteBatch.DrawString(_font, lvlText, new Vector2(10, 35), Color.Gold);
+
+                if (_playerLevel < 3)
+                {
                     // Barra de XP
                     Texture2D barTex = new Texture2D(GraphicsDevice, 1, 1);
                     barTex.SetData(new[] { Color.White });
@@ -472,8 +716,22 @@ namespace jogo
                     float xpPercent = (float)_currentXp / _xpToNextLevel;
                     _spriteBatch.Draw(barTex, new Rectangle((int)xpBarPos.X, (int)xpBarPos.Y, (int)(xpBarWidth * xpPercent), xpBarHeight), new Color(35, 79, 215)); // Cor pedida
                 }
+            }
+            else if (_currentState == GameState.Victory)
+            {
+                // Placeholder para imagem comemorativa futura
+                Texture2D backgroundVic = new Texture2D(GraphicsDevice, 1, 1);
+                backgroundVic.SetData(new[] { Color.DarkOrange });
+                _spriteBatch.Draw(backgroundVic, new Rectangle(0, 0, _mapWidth, _mapHeight), Color.White);
 
+                string vicText = "VICTORIA! BOSS DERROTADO";
+                Vector2 vicTextSize = _font.MeasureString(vicText);
+                _spriteBatch.DrawString(_font, vicText, new Vector2(_mapWidth / 2 - vicTextSize.X / 2, _mapHeight / 2 - 50), Color.White);
 
+                string retText = "Pressiona [ENTER] para regressar ao Menu";
+                Vector2 retTextSize = _font.MeasureString(retText);
+                _spriteBatch.DrawString(_font, retText, new Vector2(_mapWidth / 2 - retTextSize.X / 2, _mapHeight / 2 + 50), Color.White);
+            }
 
             _spriteBatch.End();
 

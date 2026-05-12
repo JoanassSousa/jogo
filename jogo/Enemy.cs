@@ -16,7 +16,7 @@ namespace jogo
 
         public void TakeDamage(int delayOrDamageAmmount)
         {
-             Health -= delayOrDamageAmmount;
+            Health -= delayOrDamageAmmount;
         }
 
         public Enemy(Vector2 initialPosition)
@@ -94,7 +94,7 @@ namespace jogo
                     if (direction.X != 0) // Se bateu indo em X, tenta ir em Y
                     {
                         Vector2 backupY = new Vector2(0, System.Math.Sign(playerWorldPosition.Y - WorldPosition.Y));
-                        if(backupY != Vector2.Zero)
+                        if (backupY != Vector2.Zero)
                         {
                             Vector2 newPositionY = WorldPosition + backupY * Speed;
                             Rectangle newBoundsY = new Rectangle((int)newPositionY.X, (int)newPositionY.Y, 20, 20);
@@ -108,7 +108,7 @@ namespace jogo
                     else if (direction.Y != 0) // Se bateu indo em Y, tenta em X
                     {
                         Vector2 backupX = new Vector2(System.Math.Sign(playerWorldPosition.X - WorldPosition.X), 0);
-                        if(backupX != Vector2.Zero)
+                        if (backupX != Vector2.Zero)
                         {
                             Vector2 newPositionX = WorldPosition + backupX * Speed;
                             Rectangle newBoundsX = new Rectangle((int)newPositionX.X, (int)newPositionX.Y, 20, 20);
