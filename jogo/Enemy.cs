@@ -7,7 +7,12 @@ namespace jogo
     {
         public Vector2 WorldPosition { get; set; }
         public float Speed { get; set; } = 2f;
-        public Texture2D Texture { get; set; }
+        public Vector2 direction;
+        public Texture2D[] Texture { get; set; }
+        private int currentFrame = 0;
+
+        private float animationTimer = 0f;
+        private float animationSpeed = 0.2f;
 
         public int Health { get; set; } = 20;
         public int MaxHealth { get; private set; } = 20;
@@ -16,7 +21,7 @@ namespace jogo
 
         public void TakeDamage(int delayOrDamageAmmount)
         {
-             Health -= delayOrDamageAmmount;
+            Health -= delayOrDamageAmmount;
         }
 
         public Enemy(Vector2 initialPosition)
@@ -55,7 +60,7 @@ namespace jogo
                 return;
             }
 
-            Vector2 direction = playerWorldPosition - WorldPosition;
+            direction = playerWorldPosition - WorldPosition;
             if (direction != Vector2.Zero)
             {
                 // Animação de movimento
@@ -104,7 +109,7 @@ namespace jogo
                     if (direction.X != 0) // Se bateu indo em X, tenta ir em Y
                     {
                         Vector2 backupY = new Vector2(0, System.Math.Sign(playerWorldPosition.Y - WorldPosition.Y));
-                        if(backupY != Vector2.Zero)
+                        if (backupY != Vector2.Zero)
                         {
                             Vector2 newPositionY = WorldPosition + backupY * Speed;
                             Rectangle newBoundsY = new Rectangle((int)newPositionY.X, (int)newPositionY.Y, 20, 20);
@@ -118,7 +123,7 @@ namespace jogo
                     else if (direction.Y != 0) // Se bateu indo em Y, tenta em X
                     {
                         Vector2 backupX = new Vector2(System.Math.Sign(playerWorldPosition.X - WorldPosition.X), 0);
-                        if(backupX != Vector2.Zero)
+                        if (backupX != Vector2.Zero)
                         {
                             Vector2 newPositionX = WorldPosition + backupX * Speed;
                             Rectangle newBoundsX = new Rectangle((int)newPositionX.X, (int)newPositionX.Y, 20, 20);
@@ -130,6 +135,26 @@ namespace jogo
                         }
                     }
                 }
+            }
+        }
+
+        public void LoadFrames(Texture2D[] frames)
+        {
+            Texture = frames;
+        }
+
+        public void UpdateAnimation(GameTime gameTime)
+        {
+            animationTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (animationTimer >= animationSpeed)
+            {
+                currentFrame++;
+
+                if (currentFrame >= Texture.Length)
+                    currentFrame = 0;
+
+                animationTimer = 0f;
             }
         }
 

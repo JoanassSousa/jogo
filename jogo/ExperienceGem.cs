@@ -5,7 +5,7 @@ namespace jogo
 {
     public class ExperienceGem
     {
-        public Vector2 WorldPosition { get; private set; }
+        public Vector2 WorldPosition { get; set; }
         public int VisualLevel { get; private set; } // 1 for XP nível 1 a 2, 2 for XP acima
         public bool IsCollected { get; set; }
         public int XpAmount { get; private set; }
@@ -29,10 +29,10 @@ namespace jogo
             Texture2D texture = new Texture2D(spriteBatch.GraphicsDevice, 10, 10);
             Color gemColor = VisualLevel == 1 ? new Color(35, 79, 215) : new Color(35, 79, 215); // "#234fd7" and "#234fd7l" might just be variants of blue
 
-            if (VisualLevel > 1) 
+            if (VisualLevel > 1)
             {
                 // slightly different tint for visual info
-                gemColor = new Color(50, 100, 255); 
+                gemColor = new Color(50, 100, 255);
             }
 
             Color[] data = new Color[10 * 10];
