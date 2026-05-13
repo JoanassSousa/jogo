@@ -148,38 +148,14 @@ namespace jogo
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch, Vector2 playerWorldPosition)
+        public void Draw(SpriteBatch spriteBatch)
         {
             // Calculate screen position relative to player
             Vector2 screenPosition = WorldPosition;
 
             if (Texture != null)
             {
-                int frameWidth = Texture[currentFrame].Width;
-                int frameHeight = Texture[currentFrame].Height;
-
-                Rectangle sourceRectangle = new Rectangle(0, 0, frameWidth, frameHeight);
-
-                SpriteEffects spriteEffect = SpriteEffects.None;
-
-                // Inverte horizontalmente se o inimigo estiver posicionado à esquerda do jogador 
-                // e precisar virar na direcão deste
-                if (WorldPosition.X < playerWorldPosition.X)
-                {
-                    spriteEffect = SpriteEffects.FlipHorizontally;
-                }
-
-                spriteBatch.Draw(
-                    Texture[currentFrame],
-                    screenPosition,
-                    sourceRectangle,
-                    Color.White,
-                    0f,
-                    Vector2.Zero, // Ponto de origem
-                    1f,           // Escala
-                    spriteEffect,
-                    0f            // Profundidade (Layer)
-                );
+                spriteBatch.Draw(Texture[currentFrame], screenPosition, Color.White);
             }
             else
             {
@@ -197,7 +173,7 @@ namespace jogo
                 Texture2D healthBarTexture = new Texture2D(spriteBatch.GraphicsDevice, 1, 1);
                 healthBarTexture.SetData(new[] { Color.White });
 
-                int barWidth = Texture != null ? Texture[currentFrame].Width : 20; // Largura equivalente
+                int barWidth = 20; // Largura total igual à largura do inimigo
                 int barHeight = 4;
                 int yOffset = -8; // Distância acima do inimigo
 

@@ -520,12 +520,12 @@ namespace jogo
 
                         if (enemy.Health <= 0)
                         {
-                            if(_currentArea == 1)
+                            if (_currentArea == 1)
                             {
                                 _experienceGems.Add(new ExperienceGem(
                                 new Vector2(enemy.WorldPosition.X + 5, enemy.WorldPosition.Y + 5), 1, 0.4f));
                             }
-                            if(_currentArea == 2)
+                            if (_currentArea == 2)
                             {
                                 _experienceGems.Add(new ExperienceGem(
                                 new Vector2(enemy.WorldPosition.X + 5, enemy.WorldPosition.Y + 5), 1, 0.31f));
@@ -780,7 +780,7 @@ namespace jogo
                     }
                     else
                     {
-                        enemy.Draw(_spriteBatch, _playerWorldPosition);
+                        enemy.Draw(_spriteBatch);
                     }
                 }
 
