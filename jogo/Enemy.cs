@@ -63,16 +63,6 @@ namespace jogo
             direction = playerWorldPosition - WorldPosition;
             if (direction != Vector2.Zero)
             {
-                // Animação de movimento
-                _animationCounter++;
-                if (_animationCounter >= _animationDelay)
-                {
-                    _animationCounter = 0;
-                    _currentFrame++;
-                    if (_currentFrame >= _totalFrames)
-                        _currentFrame = 0;
-                }
-
                 // Força o movimento apenas para o eixo de maior distância (Caminho mais Linear - Grade)
                 if (System.Math.Abs(direction.X) > System.Math.Abs(direction.Y))
                 {
@@ -158,17 +148,17 @@ namespace jogo
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch, Vector2 playerScreenPosition, Vector2 playerWorldPosition)
+        public void Draw(SpriteBatch spriteBatch, Vector2 playerWorldPosition)
         {
             // Calculate screen position relative to player
-            Vector2 screenPosition = WorldPosition - playerWorldPosition + playerScreenPosition;
+            Vector2 screenPosition = WorldPosition;
 
             if (Texture != null)
             {
-                int frameWidth = Texture.Width;
-                int frameHeight = Texture.Height / _totalFrames;
+                int frameWidth = Texture[currentFrame].Width;
+                int frameHeight = Texture[currentFrame].Height;
 
-                Rectangle sourceRectangle = new Rectangle(0, _currentFrame * frameHeight, frameWidth, frameHeight);
+                Rectangle sourceRectangle = new Rectangle(0, 0, frameWidth, frameHeight);
 
                 SpriteEffects spriteEffect = SpriteEffects.None;
 
@@ -180,7 +170,7 @@ namespace jogo
                 }
 
                 spriteBatch.Draw(
-                    Texture,
+                    Texture[currentFrame],
                     screenPosition,
                     sourceRectangle,
                     Color.White,
@@ -207,7 +197,7 @@ namespace jogo
                 Texture2D healthBarTexture = new Texture2D(spriteBatch.GraphicsDevice, 1, 1);
                 healthBarTexture.SetData(new[] { Color.White });
 
-                int barWidth = Texture != null ? Texture.Width : 20; // Largura equivalente
+                int barWidth = Texture != null ? Texture[currentFrame].Width : 20; // Largura equivalente
                 int barHeight = 4;
                 int yOffset = -8; // Distância acima do inimigo
 

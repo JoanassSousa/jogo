@@ -8,11 +8,11 @@ namespace jogo
         public Vector2 WorldPosition { get; set; }
         public int VisualLevel { get; private set; } // 1 for XP nível 1 a 2, 2 for XP acima
         public bool IsCollected { get; set; }
-        public int XpAmount { get; private set; }
+        public float XpAmount { get; private set; }
 
         public Rectangle Bounds => new Rectangle((int)WorldPosition.X, (int)WorldPosition.Y, 10, 10);
 
-        public ExperienceGem(Vector2 position, int visualLevel, int xpAmount)
+        public ExperienceGem(Vector2 position, int visualLevel, float xpAmount)
         {
             WorldPosition = position;
             VisualLevel = visualLevel;

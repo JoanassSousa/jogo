@@ -82,7 +82,7 @@ namespace jogo
 
         // XP e Level do Player
         int _playerLevel = 1;
-        int _currentXp = 0;
+        float _currentXp = 0;
         int _xpToNextLevel = 2; // Será modificado para requerer 50 x 2 = 100 de exp (sendo que cada gema de lvl 1 passará a dar apenas 2 XP de forma que 50 pedaços deem 100). Usaremos 100 de referencial
 
         // Lista de pedras de XP no cenário
@@ -148,9 +148,13 @@ namespace jogo
 );
 
             // inicializar o inimigo
-            _enemies.Add(new Enemy(new Vector2(200, 200)));
+            _enemies.Add(new Enemy(new Vector2(335, 100)));
+            _enemies.Add(new Enemy(new Vector2(375, 100)));
+            _enemies.Add(new Enemy(new Vector2(430, 100)));
+            _enemies.Add(new Enemy(new Vector2(50, 300)));
+            _enemies.Add(new Enemy(new Vector2(680, 300)));
 
-            _portalBounds = new Rectangle(_mapWidth / 2 - 25, 0, 50, 50);
+            _portalBounds = new Rectangle(355, 210, 90, 127);
 
             // inicializar parede perto do player (exemplo posição e tamanho)
             _wall = new Wall(new Vector2(100, 180), 590, 145);
@@ -516,8 +520,16 @@ namespace jogo
 
                         if (enemy.Health <= 0)
                         {
-                            _experienceGems.Add(new ExperienceGem(
-                                new Vector2(enemy.WorldPosition.X + 5, enemy.WorldPosition.Y + 5), 1, 2));
+                            if(_currentArea == 1)
+                            {
+                                _experienceGems.Add(new ExperienceGem(
+                                new Vector2(enemy.WorldPosition.X + 5, enemy.WorldPosition.Y + 5), 1, 0.4f));
+                            }
+                            if(_currentArea == 2)
+                            {
+                                _experienceGems.Add(new ExperienceGem(
+                                new Vector2(enemy.WorldPosition.X + 5, enemy.WorldPosition.Y + 5), 1, 0.31f));
+                            }
                         }
                     }
 
@@ -545,14 +557,46 @@ namespace jogo
                     {
                         _playerWorldPosition = new Vector2(400, 400); // Reset position meio screen
 
-                        RangedEnemy enemy1 = new RangedEnemy(new Vector2(200, 200));
+                        RangedEnemy enemy1 = new RangedEnemy(new Vector2(335, 100));
                         enemy1.LoadFrames(sheepFrames);
 
-                        RangedEnemy enemy2 = new RangedEnemy(new Vector2(600, 200));
+                        RangedEnemy enemy2 = new RangedEnemy(new Vector2(430, 100));
                         enemy2.LoadFrames(sheepFrames);
 
-                        _enemies.Add(enemy1);
-                        _enemies.Add(enemy2); // Mudou de meelee para ranged
+                        RangedEnemy enemy3 = new RangedEnemy(new Vector2(50, 300));
+                        enemy3.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy4 = new RangedEnemy(new Vector2(680, 300));
+                        enemy4.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy5 = new RangedEnemy(new Vector2(375, 100));
+                        enemy5.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy6 = new RangedEnemy(new Vector2(300, 100));
+                        enemy6.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy7 = new RangedEnemy(new Vector2(470, 100));
+                        enemy7.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy8 = new RangedEnemy(new Vector2(50, 400));
+                        enemy8.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy9 = new RangedEnemy(new Vector2(680, 400));
+                        enemy9.LoadFrames(sheepFrames);
+
+                        RangedEnemy enemy10 = new RangedEnemy(new Vector2(50, 100));
+                        enemy10.LoadFrames(sheepFrames);
+
+                        _enemies.Add(enemy1); // Mudou de meelee para ranged
+                        _enemies.Add(enemy2);
+                        _enemies.Add(enemy3);
+                        _enemies.Add(enemy4);
+                        _enemies.Add(enemy5);
+                        _enemies.Add(enemy6);
+                        _enemies.Add(enemy7);
+                        _enemies.Add(enemy8);
+                        _enemies.Add(enemy9);
+                        _enemies.Add(enemy10);
                     }
                     if (_currentArea == 3)
                     {
@@ -736,7 +780,7 @@ namespace jogo
                     }
                     else
                     {
-                        enemy.Draw(_spriteBatch, enemy.WorldPosition, enemy.WorldPosition);
+                        enemy.Draw(_spriteBatch, _playerWorldPosition);
                     }
                 }
 
