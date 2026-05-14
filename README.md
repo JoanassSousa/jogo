@@ -25,8 +25,6 @@ Wall.cs e BrownWall.cs → colisões e obstáculos.
 (Isto ajuda bastante na manutenção do código)
 
 - Uso de Herança
-Exemplo:
-
 ```csharp
 public class RangedEnemy : Enemy
 {
