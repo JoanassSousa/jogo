@@ -1,0 +1,87 @@
+Blue Friday
+============
+
+Autores:
+- José Silva 21076
+- Nuno Alves 31181
+- Joana Sousa 34976
+
+Ideia geral
+------------
+O jogo inclui combate contra inimigos melee e ranged, projéteis, recolha de experiência.
+A lógica principal encontra-se em `Game1.cs`, responsável pelo loop do jogo, renderização e atualização das entidades.
+
+Pontos fortes
+------------
+- Organização por Classes: O jogo está dividido em várias classes com responsabilidades separadas:
+
+Enemy.cs → lógica base dos inimigos;
+BossEnemy.cs → boss com animação;
+RangedEnemy.cs → inimigo com ataques à distância;
+PlayerAttack.cs → sistema de ataque do player;
+ExperienceGem.cs → sistema de experiência;
+Wall.cs e BrownWall.cs → colisões e obstáculos.
+
+(Isto ajuda bastante na manutenção do código)
+
+- Uso de Herança
+Exemplo:
+
+```csharp
+public class RangedEnemy : Enemy
+{
+    private float _attackTimer = 0.0f;
+    private float _attackInterval = 2.5f;
+}
+```
+A classe `RangedEnemy` herda funcionalidades da classe `Enemy`, evitando repetição de código.
+
+- Código organizado por responsabilidade: cada entidade tem a sua própria classe, facilitando evolução e manutenção.
+- Target .NET 8, aproveitando as melhorias de desempenho e APIs recentes.
+- Projeto pequeno e direto, bom para prototipagem e aprendizagem.
+
+
+Pontos fracos
+------------
+
+- A classe `Game1.cs` concentra demasiadas responsabilidades, dificultando manutenção, debugging e expansão do projeto.
+- Pouca Abstração nos Obstáculos
+Existem duas classes muito semelhantes: Wall e BrownWall. A lógica podia ser unificada.
+- Mais comentários explicativos no código: Embora existam alguns comentários, certas partes complexas do combate e movimentação poderiam
+estar melhor documentadas, como por exemplo: cálculos de direção, colisões, animações e gestão de mapas.
+- Possível dependência de assets externos (imagens/sons) e paths hard-coded — verificar carregamento de recursos.
+- Pouca modularização para features maiores (por exemplo, sistema de níveis, configuração de inimigos, balanceamento).
+
+
+Estrutura:
+------------
+
+`jogo\Game1.cs`
+Loop principal do jogo e renderização. Responsável por: carregar conteúdos, atualizar lógica, desenhar elementos, controlar mapas e gerir inimigos.
+
+`jogo\Program.cs`
+Ponto de entrada
+
+`jogo\Enemy.cs`
+Classe base para inimigos: Inclui: vida, movimento, animação, deteção de colisão.
+
+`jogo\BossEnemy.cs`
+Inimigo mais forte. Especialização da classe Enemy. Inclui: animações próprias, lógica de boss, múltiplos frames.
+
+`jogo\RangedEnemy.cs`
+Inimigos à distância. Inimigo que dispara projéteis. Inclui: temporizador de ataque, criação de munições e IA simples de perseguição.
+
+`jogo\RangedEnemyBullet.cs`
+Projéteis de inimigos à distância
+
+`jogo\PlayerAttack.cs`
+Lógica de ataques do jogador. Controla: ataques, direção, duração, dano e alcance.
+
+`jogo\ExperienceGem.cs`
+Responsável pelas gemas de experiência recolhidas pela personagem.
+
+`jogo\Wall.cs`
+Parede genérica
+
+`jogo\BrownWall.cs`
+Variante de parede
