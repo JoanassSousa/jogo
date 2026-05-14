@@ -8,7 +8,7 @@ Autores:
 
 Ideia geral
 ------------
-O jogo inclui combate contra inimigos melee e ranged, projéteis, recolha de experiência.
+O jogo inclui combate contra inimigos de combate corpo a corpo e inimigos de ataque à distância, projéteis, recolha de experiência.
 A lógica principal encontra-se em `Game1.cs`, responsável pelo loop do jogo, renderização e atualização das entidades.
 
 Pontos fortes
@@ -44,14 +44,44 @@ A classe `RangedEnemy` herda funcionalidades da classe `Enemy`, evitando repeti�
 Pontos fracos
 ------------
 
-- A classe `Game1.cs` concentra demasiadas responsabilidades, dificultando manutenção, debugging e expansão do projeto.
-- Pouca Abstração nos Obstáculos
-Existem duas classes muito semelhantes: Wall e BrownWall. A lógica podia ser unificada.
+
+
+A classe `Game1.cs` concentra grande parte da lógica principal do jogo, incluindo atualização de entidades, renderização, carregamento de conteúdos e controlo geral do gameplay.
+```csharp
+protected override void Update(GameTime gameTime)
+{
+    player.Update();
+    enemy.Update();
+    boss.Update();
+    projectile.Update();
+}
+```
+À medida que o projeto cresce, esta classe pode tornar-se demasiado grande e difícil de gerir.
+
+
+- Existem classes muito semelhantes, como `Wall` e `BrownWall`, que possuem funcionalidades parecidas.
+```csharp
+public class Wall
+{
+    public Rectangle Bounds;
+}
+```
+
+```csharp
+public class BrownWall
+{
+    public Rectangle Bounds;
+}
+```
+A lógica poderia ser reutilizada através de uma classe base genérica para evitar repetição de código.
+  
 - Mais comentários explicativos no código: Embora existam alguns comentários, certas partes complexas do combate e movimentação poderiam
 estar melhor documentadas, como por exemplo: cálculos de direção, colisões, animações e gestão de mapas.
-- Possível dependência de assets externos (imagens/sons) e paths hard-coded — verificar carregamento de recursos.
-- Pouca modularização para features maiores (por exemplo, sistema de níveis, configuração de inimigos, balanceamento).
-
+- Carregamento de recursos diretamente no código: Alguns caminhos de imagens e sons podem estar definidos diretamente no código, o que dificulta futuras alterações na estrutura das pastas.
+```csharp
+Content.Load<Texture2D>("images/player");
+```
+Caso o nome da pasta ou do ficheiro seja alterado, o jogo pode deixar de carregar corretamente os recursos.
 
 Estrutura:
 ------------
