@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -6,7 +7,7 @@ using System.IO;
 
 namespace jogo
 {
-    public class Game1 : Game
+    public class Game1 : Game 
     {
         // boss com animação de 4 frames
         private Texture2D[] bossFrames;
@@ -16,19 +17,14 @@ namespace jogo
         private Texture2D[] rangedFramesLeft;
         private Texture2D[] rangedFramesRight;
 
+        // sound effects
+        private SoundEffect attackSound;
+        private SoundEffect damagedSound;
 
         Vector2 _playerWorldPosition = Vector2.Zero;
-        //porta do mapa
-        Rectangle _storeDoor = new Rectangle(350, 205, 100, 130);
 
-        //png do supermarket do lado de fora e do lado de dentro
-        Texture2D _outsideMap;
-        Texture2D _insideMap;
-
-        bool _insideStore = false;
-
-        //posição do supermercado do lado de fora
-        Vector2 _worldPosition = new Vector2(0, 250);
+        // mapas por area
+        Texture2D[] _areaMaps = new Texture2D[4]; // indices 1..3 usados para niveis
 
         // variaveis do mini menu
         Texture2D _menuButton;
@@ -46,7 +42,7 @@ namespace jogo
         Vector2 _playerScreenPosition;
 
         // O mapa ficará agora estático no fundo, tamanho do mapa será os limites:
-        int _mapWidth = 800; // Será atualizado para o tamanho da textura
+        int _mapWidth = 800; // Será atualizado para o tamanho da textura ou viewport
         int _mapHeight = 600;
 
 
@@ -157,7 +153,8 @@ namespace jogo
             _portalBounds = new Rectangle(355, 210, 90, 127);
 
             // inicializar parede perto do player (exemplo posição e tamanho)
-            _wall = new Wall(new Vector2(100, 180), 590, 145);
+            if (_currentArea == 3) _wall = new Wall(new Vector2(100, 180), 590, 135);
+            else _wall = new Wall(new Vector2(357, 207), 85, 120);
 
             _playerWorldPosition = new Vector2(400, 400); // Começar no meio visível
             _brownWall = new BrownWall(new Vector2(450, 300), 100, 20); // Perto do player
@@ -176,6 +173,9 @@ namespace jogo
         // carregar coisas (fontes, imagens)
         protected override void LoadContent()
         {
+
+            // Create a new SpriteBatch, which can be used to draw textures.
+            _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             // boss com animação de 4 frames
             bossFrames = new Texture2D[4];
@@ -208,16 +208,34 @@ namespace jogo
             rangedFramesUp[0] = Content.Load<Texture2D>("rangedEnemyUp_0");
             rangedFramesUp[1] = Content.Load<Texture2D>("rangedEnemyUp_1");
 
+            //sound effects
+            attackSound = Content.Load<SoundEffect>("Hurtsound");
+            damagedSound = Content.Load<SoundEffect>("takingDamage");
+
             foreach (var enemy in _enemies)
             {
                 enemy.LoadFrames(sheepFrames);
             }
 
-            //supermarket do lado de fora e do lado de dentro
-            _outsideMap = Content.Load<Texture2D>("supermercado_fora");
-            _insideMap = Content.Load<Texture2D>("supermercado_dentro");
-            _mapWidth = _outsideMap.Width;
-            _mapHeight = _outsideMap.Height;
+            // carregar mapas por niveis
+            // nivel 1: imagem nivel1ovelhas (vai ser esticada para ocupar o ecrã)
+            _areaMaps[1] = Content.Load<Texture2D>("nivel1ovelhas");
+            // nivel 2: mapa que será usado em mosaico (tile)
+            _areaMaps[2] = Content.Load<Texture2D>("mapadosputos");
+            // nivel 3: mapa do boss (vai ser esticado para ocupar o ecrã)
+            _areaMaps[3] = Content.Load<Texture2D>("mapaboss");
+
+            // definir tamanho do mapa inicial (area 1,2,3) - esticado ou tiled para ocupar o ecrã
+            if (_currentArea == 1 || _currentArea == 2 || _currentArea == 3)
+            {
+                _mapWidth = GraphicsDevice.Viewport.Width;
+                _mapHeight = GraphicsDevice.Viewport.Height;
+            }
+            else
+            {
+                _mapWidth = _areaMaps[_currentArea].Width;
+                _mapHeight = _areaMaps[_currentArea].Height;
+            }
 
             // imagem do mini menu
             _menuButton = Content.Load<Texture2D>("menu_button");
@@ -234,8 +252,6 @@ namespace jogo
             _menuImage = Content.Load<Texture2D>("capablue");
 
             //fonte do menu
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
-
             _font = Content.Load<SpriteFont>("DefaultFont");
             _brownWall.LoadContent(GraphicsDevice);
 
@@ -270,13 +286,6 @@ namespace jogo
             if (_currentState == GameState.Menu)
             {
                 _prevMouse = Mouse.GetState();
-                //detetar porta do supermercado
-                if (!_insideStore && _storeDoor.Contains(_worldPosition))
-                {
-                    _insideStore = true;
-
-                    _worldPosition = new Vector2(200, 200);
-                }
 
                 if (_keyboard.IsKeyDown(Keys.Down) && _prevKeyboard.IsKeyUp(Keys.Down))
                     _selectedIndex++;
@@ -360,8 +369,16 @@ namespace jogo
                     _playerFaceDirection = new Vector2(1, 0);
                 }
 
-                _playerWorldPosition.X = Math.Clamp(_playerWorldPosition.X, 0, _mapWidth - 32);
-                _playerWorldPosition.Y = Math.Clamp(_playerWorldPosition.Y, 0, _mapHeight - 32);
+                // Usar dimensões efetivas: para as areas esticadas/tiled (1,2,3) limitar pelo tamanho da viewport
+                int effectiveWidth = (_currentArea == 1 || _currentArea == 2 || _currentArea == 3)
+                    ? GraphicsDevice.Viewport.Width
+                    : _mapWidth;
+                int effectiveHeight = (_currentArea == 1 || _currentArea == 2 || _currentArea == 3)
+                    ? GraphicsDevice.Viewport.Height
+                    : _mapHeight;
+
+                _playerWorldPosition.X = Math.Clamp(_playerWorldPosition.X, 0, effectiveWidth - 32);
+                _playerWorldPosition.Y = Math.Clamp(_playerWorldPosition.Y, 0, effectiveHeight - 32);
 
                 // Disparar o ataque ao pressionar espaço ou clique esquerdo do mouse
                 if ((keyboard.IsKeyDown(Keys.Space) && _prevKeyboard.IsKeyUp(Keys.Space)) ||
@@ -382,6 +399,7 @@ namespace jogo
                     }
 
                     _playerAttack.StartAttack(_playerWorldPosition, attackDirection);
+                    attackSound.Play();
                     _enemyHitByCurrentAttack = false; // reseta controle de hit no ataque novo
                 }
 
@@ -412,12 +430,7 @@ namespace jogo
                     _currentState = GameState.Menu;
                 }
 
-                // criar lista de obstáculos (neste caso, a porta)
                 var obstacles = new System.Collections.Generic.List<Rectangle>();
-                if (!_insideStore)
-                {
-                    obstacles.Add(_storeDoor); // o inimigo contornará a porta colidível por fora
-                }
 
                 Rectangle playerBounds = new Rectangle(
                     (int)_playerWorldPosition.X,
@@ -437,6 +450,7 @@ namespace jogo
                         if (_timeSinceLastEnemyCollision >= 1f) // Usa mesmo i-frame
                         {
                             _playerHealth -= _enemyBullets[i].Damage;
+                            damagedSound.Play();
                             _timeSinceLastDamage = 0f;
                             _timeSinceLastEnemyCollision = 0f;
                         }
@@ -502,6 +516,7 @@ namespace jogo
                         if (_timeSinceLastEnemyCollision >= 1f)
                         {
                             _playerHealth -= 5;
+                            damagedSound.Play();
                             _timeSinceLastDamage = 0f;
                             _timeSinceLastEnemyCollision = 0f;
 
@@ -553,6 +568,24 @@ namespace jogo
                     _enemies.Clear();
                     _enemyBullets.Clear();
 
+                    // atualizar dimensões do mapa para a nova area
+                    if (_currentArea == 1)
+                    {
+                        _mapWidth = GraphicsDevice.Viewport.Width;
+                        _mapHeight = GraphicsDevice.Viewport.Height;
+                    }
+                    else if (_currentArea == 2)
+                    {
+                        // nivel 2 usa mosaico para cobrir o ecrã: permitir movimento por todo o ecrã
+                        _mapWidth = GraphicsDevice.Viewport.Width;
+                        _mapHeight = GraphicsDevice.Viewport.Height;
+                    }
+                    else if (_areaMaps[_currentArea] != null)
+                    {
+                        _mapWidth = _areaMaps[_currentArea].Width;
+                        _mapHeight = _areaMaps[_currentArea].Height;
+                    }
+
                     if (_currentArea == 2)
                     {
                         _playerWorldPosition = new Vector2(400, 400); // Reset position meio screen
@@ -600,10 +633,20 @@ namespace jogo
                     }
                     if (_currentArea == 3)
                     {
-                        _playerWorldPosition = new Vector2(_mapWidth / 2 - 16, _mapHeight - 50); // Cima e no meio da zona inferior
+                        // garantir dimensões do mapa correspondem ao ecrã para o nível 3
+                        _mapWidth = GraphicsDevice.Viewport.Width;
+                        _mapHeight = GraphicsDevice.Viewport.Height;
+
+                        // posicionar o jogador no centro do ecrã ao entrar no nível 3
+                        _playerWorldPosition = new Vector2(400, 400);
+
+
+                        // posicionar o boss no centro do ecrã (ajustando pela metade da sua dimensão estimada)
+                        float bossHalfW = 30f; // estimativa baseada no comentário original (60x60)
+                        float bossHalfH = 30f;
                         BossEnemy boss = new BossEnemy(
-    new Vector2(_mapWidth / 2 - 30, _mapHeight / 2)
-);
+                            new Vector2(GraphicsDevice.Viewport.Width / 2f - bossHalfW, GraphicsDevice.Viewport.Height / 2f - bossHalfH)
+                        );
 
                         boss.LoadBossFrames(bossFrames);
 
@@ -730,39 +773,51 @@ namespace jogo
             {
                 // Como não tem mais camera offset, todos os objetos são desenhados diretamente na sua posição de mundo
 
-                // mapa
-                Texture2D currentMap = _insideStore ? _insideMap : _outsideMap;
-                _spriteBatch.Draw(currentMap, Vector2.Zero, Color.White); // Fixo no (0,0)
+                // mapa: escolher por area
+                Texture2D currentMap = _areaMaps[_currentArea];
 
-                //porta do supermercado
-                Texture2D debugTexture = new Texture2D(GraphicsDevice, 1, 1);
-                debugTexture.SetData(new[] { Color.Black });
+                if (currentMap == null)
+                {
+                    // fallback: desenhar fundo vazio se não houver mapa
+                    Texture2D empty = new Texture2D(GraphicsDevice, 1, 1);
+                    empty.SetData(new[] { Color.CornflowerBlue });
+                    _spriteBatch.Draw(empty, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
+                }
+                else if (_currentArea == 1 || _currentArea == 3)
+                {
+                    // nível 1 e 3: esticar para ocupar o ecrã inteiro
+                    Rectangle screenRect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+                    _spriteBatch.Draw(currentMap, screenRect, Color.White);
+                }
+                else if (_currentArea == 2)
+                {
+                    // nível 2: desenhar como mosaico (tile) para cobrir o ecrã
+                    int texW = currentMap.Width;
+                    int texH = currentMap.Height;
+                    int screenW = GraphicsDevice.Viewport.Width;
+                    int screenH = GraphicsDevice.Viewport.Height;
 
-                Rectangle movedDoor = new Rectangle(
-                    _storeDoor.X,
-                    _storeDoor.Y,
-                    _storeDoor.Width,
-                    _storeDoor.Height
-                );
-
-                _spriteBatch.Draw(debugTexture, movedDoor, Color.Red * 0.5f);
+                    for (int x = 0; x < screenW; x += texW)
+                    {
+                        for (int y = 0; y < screenH; y += texH)
+                        {
+                            _spriteBatch.Draw(currentMap, new Vector2(x, y), Color.White);
+                        }
+                    }
+                }
+                else
+                {
+                    // desenhar mapa nas suas dimensões normais
+                    _spriteBatch.Draw(currentMap, Vector2.Zero, Color.White);
+                }
 
                 // mini menu
                 _spriteBatch.Draw(_menuButton, _menuButtonRect, Color.White);
 
-                // wall desenhada no mundo onde player fica preso
-                /*Vector2 wallDrawPos = new Vector2(_wall.Position.X, _wall.Position.Y);
-                Texture2D wallTexture = new Texture2D(GraphicsDevice, 1, 1);
-                wallTexture.SetData(new[] { Color.Brown });
-                _spriteBatch.Draw(wallTexture, new Rectangle((int)wallDrawPos.X, (int)wallDrawPos.Y, _wall.Width, _wall.Height), Color.White);*/
+            Vector2 cameraOffset = Vector2.Zero; // sem offset para o caso de ainda o calcular
+            _brownWall.Draw(_spriteBatch, cameraOffset);
 
-                Vector2 cameraOffset = Vector2.Zero; // sem offset para o caso de ainda o calcular
-                _brownWall.Draw(_spriteBatch, cameraOffset);
-
-                // playerzinho no mundo
-                _spriteBatch.Draw(_currentPlayerTexture, _playerWorldPosition, Color.White);
-
-                if (_portalActive)
+            if (_portalActive)
                 {
                     Texture2D portalTex = new Texture2D(GraphicsDevice, 50, 50);
                     Color[] data = new Color[50 * 50];
@@ -783,6 +838,9 @@ namespace jogo
                         enemy.Draw(_spriteBatch);
                     }
                 }
+
+            // playerzinho no mundo (desenhar depois dos inimigos para garantir visibilidade)
+            _spriteBatch.Draw(_currentPlayerTexture, _playerWorldPosition, Color.White);
 
                 // desenhar balas
                 foreach (var bullet in _enemyBullets)
