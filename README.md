@@ -13,18 +13,24 @@ A lógica principal encontra-se em `Game1.cs`, responsável pelo loop do jogo, r
 
 Pontos fortes
 ------------
-- Organização por Classes: O jogo está dividido em várias classes com responsabilidades separadas:
+- Organização por Classes:
+O projeto encontra-se dividido em várias classes com responsabilidades específicas, tornando o código mais organizado e fácil de manter.
 
-Enemy.cs → lógica base dos inimigos;
-BossEnemy.cs → boss com animação;
-RangedEnemy.cs → inimigo com ataques à distância;
-PlayerAttack.cs → sistema de ataque do player;
-ExperienceGem.cs → sistema de experiência;
-Wall.cs e BrownWall.cs → colisões e obstáculos.
+| Classe | Responsabilidade |
+|---|---|
+| `Enemy.cs` | Lógica base dos inimigos |
+| `BossEnemy.cs` | Inimigo principal com animações |
+| `RangedEnemy.cs` | Inimigo com ataques à distância |
+| `PlayerAttack.cs` | Sistema de ataque do jogador |
+| `ExperienceGem.cs` | Sistema de experiência |
+| `Wall.cs` / `BrownWall.cs` | Obstáculos e colisões |
 
-(Isto ajuda bastante na manutenção do código)
+Esta divisão facilita:
+- manutenção do código;
+- reutilização de funcionalidades;
+- adição de novas entidades.
 
-- Uso de Herança
+- Uso de Herança: O projeto utiliza herança para reaproveitar funcionalidades entre diferentes classes de inimigos.
 ```csharp
 public class RangedEnemy : Enemy
 {
@@ -32,11 +38,7 @@ public class RangedEnemy : Enemy
     private float _attackInterval = 2.5f;
 }
 ```
-A classe `RangedEnemy` herda funcionalidades da classe `Enemy`, evitando repetição de código.
-
-- Código organizado por responsabilidade: cada entidade tem a sua própria classe, facilitando evolução e manutenção.
-- Target .NET 8, aproveitando as melhorias de desempenho e APIs recentes.
-- Projeto pequeno e direto, bom para prototipagem e aprendizagem.
+A classe `RangedEnemy` herda características da classe `Enemy`, evitando repetição de código e facilitando futuras expansões.
 
 
 Pontos fracos
