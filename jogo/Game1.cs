@@ -311,7 +311,9 @@ namespace jogo
                     _currentArea = 1;
                     _portalActive = false;
                     _enemies.Clear();
-                    _enemies.Add(new Enemy(new Vector2(200, 200)));
+                    Enemy enemy = new Enemy(new Vector2(200, 200));
+                    enemy.LoadFrames(sheepFrames);
+                    _enemies.Add(enemy);
                     _enemyBullets.Clear();
                     _experienceGems.Clear();
                     _playerHealth = 100;
@@ -505,6 +507,26 @@ namespace jogo
                         }
                         var bullet = rangedEnemy.UpdateRanged(gameTime, _playerWorldPosition, currentEnemyObstacles);
                         if (bullet != null) _enemyBullets.Add(bullet);
+                    }
+                    else if(enemy is BossEnemy bossEnemy)
+                    {
+                        bossEnemy.UpdateBossAttacks(gameTime, _playerWorldPosition);
+                        var bossBullets = bossEnemy.BossBullets;
+                        // Handle collision logic with boss bullets inside Game1
+                        for (int b = bossBullets.Count - 1; b >= 0; b--)
+                        {
+                            if (bossBullets[b].Bounds.Intersects(playerBounds))
+                            {
+                                if (_timeSinceLastEnemyCollision >= 1f)
+                                {
+                                    _playerHealth -= bossBullets[b].Damage;
+                                    _timeSinceLastDamage = 0f;
+                                    _timeSinceLastEnemyCollision = 0f;
+                                    bossBullets.RemoveAt(b);
+                                    continue;
+                                }
+                            }
+                        }
                     }
                     else
                     {
