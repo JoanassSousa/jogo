@@ -520,6 +520,7 @@ namespace jogo
                                 if (_timeSinceLastEnemyCollision >= 1f)
                                 {
                                     _playerHealth -= bossBullets[b].Damage;
+                                    damagedSound.Play();
                                     _timeSinceLastDamage = 0f;
                                     _timeSinceLastEnemyCollision = 0f;
                                     bossBullets.RemoveAt(b);
